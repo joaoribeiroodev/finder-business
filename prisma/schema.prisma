@@ -1,0 +1,124 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum LeadStatus {
+  PENDENTE
+  PROCESSANDO_IA
+  MENSAGEM_GERADA
+  CONTATADO
+  SEM_INTERESSE
+  REUNIAO_AGENDADA
+}
+
+enum ScrapeJobStatus {
+  PENDENTE
+  RODANDO
+  CONCLUIDO
+  ERRO
+}
+
+model ScrapeJob {
+  id               String          @id @default(uuid())
+  termo            String
+  status           ScrapeJobStatus @default(PENDENTE)
+  totalEncontrados Int             @default(0)
+  totalInseridos   Int             @default(0)
+  totalDescartados Int             @default(0)
+  erro             String?         @db.Text
+  iniciadoEm       DateTime        @default(now())
+  finalizadoEm     DateTime?
+  leads            Lead[]
+
+  @@map("scrape_jobs")
+}
+
+model Lead {
+  id             String     @id @default(uuid())
+  nomeEmpresa    String
+  nicho          String
+  telefone       String
+  endereco       String?
+  temSite        Boolean    @default(false)
+  urlSite        String?
+
+  cidade         String?
+  bairro         String?
+  cep            String?
+  latitude       Float?
+  longitude      Float?
+
+  googlePlaceId  String?    @unique
+  urlMaps        String?
+  avaliacao      Float?
+  totalReviews   Int?
+  horarioFunc    String?    @db.Text
+  abertoAgora    Boolean?
+  nivelPreco     String?
+
+  email          String?
+  instagram      String?
+  facebook       String?
+
+  scoreQualidade Int?
+  termoBusca     String?
+  observacoes    String?    @db.Text
+
+  mensagemIA     String?    @db.Text
+  status         LeadStatus @default(PENDENTE)
+  contatadoEm    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  scrapeJobId    String?
+  scrapeJob      ScrapeJob? @relation(fields: [scrapeJobId], references: [id])
+
+  mensagens      MensagemHistorico[]
+
+  @@unique([telefone])
+  @@index([status])
+  @@index([cidade])
+  @@index([scoreQualidade])
+  @@index([scrapeJobId])
+  @@map("leads")
+}
+
+model MensagemHistorico {
+  id        String   @id @default(uuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  conteudo  String   @db.Text
+  template  String?
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+  @@map("mensagens_historico")
+}
+
+model LeadDescartado {
+  id          String   @id @default(uuid())
+  nomeEmpresa String?
+  telefone    String?
+  urlMaps     String?
+  motivo      String
+  termoBusca  String?
+  scrapeJobId String?
+  createdAt   DateTime @default(now())
+
+  @@map("leads_descartados")
+}
+
+model RateLimitBucket {
+  key       String   @id
+  count     Int      @default(0)
+  resetAt   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("rate_limit_buckets")
+}
