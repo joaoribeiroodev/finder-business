@@ -63,7 +63,3 @@ docker compose up --build -d
 | `npm run db:push` | Sincronizar schema |
 | `npm run db:migrate:dev` | Criar migration |
 | `docker compose up -d` | Subir com Docker |
-
-## Documentacao
-
-Plano completo de implementacao: [docs/PLANO-IMPLEMENTACAO.md](docs/PLANO-IMPLEMENTACAO.md)
